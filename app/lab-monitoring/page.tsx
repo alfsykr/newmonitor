@@ -72,6 +72,13 @@ function LabMonitoringContent() {
     currentHumidity: 0
   });
 
+  // Move all useScrollReveal calls to the top level
+  const [pageTitleRef, isPageTitleVisible] = useScrollReveal();
+  const [metricsCardsRef, isMetricsCardsVisible] = useScrollReveal();
+  const [donutChartsRef, isDonutChartsVisible] = useScrollReveal();
+  const [lineChartRef, isLineChartVisible] = useScrollReveal();
+  const [monitoringTableRef, isMonitoringTableVisible] = useScrollReveal();
+
   // Tabel utama hanya 10 data terbaru
   const pagedMonitoringData = monitoringData.slice(0, 10);
 
@@ -212,354 +219,331 @@ function LabMonitoringContent() {
             >
               <div className="p-6">
                 {/* Page Title */}
-                {(() => {
-                  const [ref, isVisible] = useScrollReveal();
-                  return (
-                    <motion.div
-                      ref={ref}
-                      initial={{ opacity: 0, y: 40 }}
-                      animate={isVisible ? { opacity: 1, y: 0 } : {}}
-                      transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
-                      className="mb-8"
-                    >
-                      <h1 className="text-3xl font-bold tracking-tight">Temperature Monitoring</h1>
-                      <p className="text-muted-foreground mt-2">
-                        Real-time monitoring of laboratory environment using ESP32 (Firebase)
-                      </p>
-                    </motion.div>
-                  );
-                })()}
+                <motion.div
+                  ref={pageTitleRef}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={isPageTitleVisible ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+                  className="mb-8"
+                >
+                  <h1 className="text-3xl font-bold tracking-tight">Temperature Monitoring</h1>
+                  <p className="text-muted-foreground mt-2">
+                    Real-time monitoring of laboratory environment using ESP32 (Firebase)
+                  </p>
+                </motion.div>
 
                 {/* Metrics Cards */}
-                {(() => {
-                  const [ref, isVisible] = useScrollReveal();
-                  return (
-                    <motion.div
-                      ref={ref}
-                      initial={{ opacity: 0, y: 40 }}
-                      animate={isVisible ? { opacity: 1, y: 0 } : {}}
-                      transition={{ duration: 0.7, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8"
-                    >
-                      <MetricCard
-                        title="Current Temperature"
-                        value={`${metrics.currentTemp}°C`}
-                        status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
-                        statusColor={isSensorConnected ? 'green' : 'orange'}
-                        icon={Thermometer}
-                        iconColor="orange"
-                      />
-                      <MetricCard
-                        title="Current Humidity"
-                        value={`${metrics.currentHumidity}%`}
-                        status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
-                        statusColor={isSensorConnected ? 'green' : 'blue'}
-                        icon={Droplets}
-                        iconColor="blue"
-                      />
-                    </motion.div>
-                  );
-                })()}
+                <motion.div
+                  ref={metricsCardsRef}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={isMetricsCardsVisible ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.7, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8"
+                >
+                  <MetricCard
+                    title="Current Temperature"
+                    value={`${metrics.currentTemp}°C`}
+                    status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
+                    statusColor={isSensorConnected ? 'green' : 'orange'}
+                    icon={Thermometer}
+                    iconColor="orange"
+                  />
+                  <MetricCard
+                    title="Current Humidity"
+                    value={`${metrics.currentHumidity}%`}
+                    status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
+                    statusColor={isSensorConnected ? 'green' : 'blue'}
+                    icon={Droplets}
+                    iconColor="blue"
+                  />
+                </motion.div>
 
                 {/* Donut Charts Section */}
-                {(() => {
-                  const [ref, isVisible] = useScrollReveal();
-                  return (
-                    <motion.div
-                      ref={ref}
-                      initial={{ opacity: 0, y: 40 }}
-                      animate={isVisible ? { opacity: 1, y: 0 } : {}}
-                      transition={{ duration: 0.7, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-                    >
-                      {/* Temperature Donut Chart */}
-                      <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                            <Thermometer className="w-5 h-5 text-orange-500" />
-                            Temperature
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-48 relative">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={temperatureDonutData}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={60}
-                                  outerRadius={80}
-                                  startAngle={90}
-                                  endAngle={450}
-                                  dataKey="value"
-                                  stroke="none"
-                                >
-                                  {temperatureDonutData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                  ))}
-                                </Pie>
-                              </PieChart>
-                            </ResponsiveContainer>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="text-center">
-                                <div className="text-3xl font-bold text-foreground">
-                                  {metrics.currentTemp.toFixed(1)}
-                                </div>
-                                <div className="text-lg text-muted-foreground">°C</div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-4 text-center">
-                            <Badge 
-                              variant="secondary" 
-                              className={`text-xs ${
-                                metrics.currentTemp > 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                metrics.currentTemp > 25 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                'bg-green-500/10 text-green-500 border-green-500/20'
-                              }`}
+                <motion.div
+                  ref={donutChartsRef}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={isDonutChartsVisible ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.7, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+                >
+                  {/* Temperature Donut Chart */}
+                  <Card className="border-0 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                        <Thermometer className="w-5 h-5 text-orange-500" />
+                        Temperature
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-48 relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={temperatureDonutData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              startAngle={90}
+                              endAngle={450}
+                              dataKey="value"
+                              stroke="none"
                             >
-                              {metrics.currentTemp > 30 ? 'Hot' : 
-                               metrics.currentTemp > 25 ? 'Warm' : 'Normal'}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Humidity Donut Chart */}
-                      <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                            <Droplets className="w-5 h-5 text-blue-500" />
-                            Humidity
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-48 relative">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={humidityDonutData}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={60}
-                                  outerRadius={80}
-                                  startAngle={90}
-                                  endAngle={450}
-                                  dataKey="value"
-                                  stroke="none"
-                                >
-                                  {humidityDonutData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                  ))}
-                                </Pie>
-                              </PieChart>
-                            </ResponsiveContainer>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="text-center">
-                                <div className="text-3xl font-bold text-foreground">
-                                  {metrics.currentHumidity.toFixed(1)}
-                                </div>
-                                <div className="text-lg text-muted-foreground">%</div>
-                              </div>
+                              {temperatureDonutData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-foreground">
+                              {metrics.currentTemp.toFixed(1)}
                             </div>
+                            <div className="text-lg text-muted-foreground">°C</div>
                           </div>
-                          <div className="mt-4 text-center">
-                            <Badge 
-                              variant="secondary" 
-                              className={`text-xs ${
-                                metrics.currentHumidity > 80 ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                                metrics.currentHumidity > 60 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                metrics.currentHumidity < 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                'bg-green-500/10 text-green-500 border-green-500/20'
-                              }`}
+                        </div>
+                      </div>
+                      <div className="mt-4 text-center">
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs ${
+                            metrics.currentTemp > 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                            metrics.currentTemp > 25 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                            'bg-green-500/10 text-green-500 border-green-500/20'
+                          }`}
+                        >
+                          {metrics.currentTemp > 30 ? 'Hot' : 
+                           metrics.currentTemp > 25 ? 'Warm' : 'Normal'}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Humidity Donut Chart */}
+                  <Card className="border-0 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                        <Droplets className="w-5 h-5 text-blue-500" />
+                        Humidity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-48 relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={humidityDonutData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              startAngle={90}
+                              endAngle={450}
+                              dataKey="value"
+                              stroke="none"
                             >
-                              {metrics.currentHumidity > 80 ? 'Very High' : 
-                               metrics.currentHumidity > 60 ? 'High' : 
-                               metrics.currentHumidity < 30 ? 'Low' : 'Normal'}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Average Temperature Card */}
-                      <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-green-500" />
-                            Avg Temperature
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                              {humidityDonutData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex items-center justify-center">
                           <div className="text-center">
-                            <div className="text-4xl font-bold text-foreground mb-2">
-                              {avgTemp}°C
+                            <div className="text-3xl font-bold text-foreground">
+                              {metrics.currentHumidity.toFixed(1)}
                             </div>
-                            <div className="text-sm text-muted-foreground mb-4">
-                              Based on {monitoringData.length} readings
-                            </div>
-                            <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
-                              Historical Average
-                            </Badge>
+                            <div className="text-lg text-muted-foreground">%</div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
+                      <div className="mt-4 text-center">
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs ${
+                            metrics.currentHumidity > 80 ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                            metrics.currentHumidity > 60 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                            metrics.currentHumidity < 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                            'bg-green-500/10 text-green-500 border-green-500/20'
+                          }`}
+                        >
+                          {metrics.currentHumidity > 80 ? 'Very High' : 
+                           metrics.currentHumidity > 60 ? 'High' : 
+                           metrics.currentHumidity < 30 ? 'Low' : 'Normal'}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                      {/* Average Humidity Card */}
-                      <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-blue-500" />
-                            Avg Humidity
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-center">
-                            <div className="text-4xl font-bold text-foreground mb-2">
-                              {avgHumidity}%
-                            </div>
-                            <div className="text-sm text-muted-foreground mb-4">
-                              Based on {monitoringData.length} readings
-                            </div>
-                            <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                              Historical Average
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })()}
+                  {/* Average Temperature Card */}
+                  <Card className="border-0 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-green-500" />
+                        Avg Temperature
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-foreground mb-2">
+                          {avgTemp}°C
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-4">
+                          Based on {monitoringData.length} readings
+                        </div>
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
+                          Historical Average
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Average Humidity Card */}
+                  <Card className="border-0 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-blue-500" />
+                        Avg Humidity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-foreground mb-2">
+                          {avgHumidity}%
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-4">
+                          Based on {monitoringData.length} readings
+                        </div>
+                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                          Historical Average
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
                 {/* Line Chart for Historical Data */}
-                {chartData.length > 0 && (() => {
-                  const [ref, isVisible] = useScrollReveal();
-                  return (
-                    <motion.div
-                      ref={ref}
-                      initial={{ opacity: 0, y: 40 }}
-                      animate={isVisible ? { opacity: 1, y: 0 } : {}}
-                      transition={{ duration: 0.7, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                      className="mb-8"
-                    >
-                      <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                        <CardHeader>
-                          <CardTitle className="text-lg font-semibold">Historical Data Trends</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-80">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                                <XAxis 
-                                  dataKey="time" 
-                                  axisLine={false}
-                                  tickLine={false}
-                                  className="text-xs fill-muted-foreground"
-                                />
-                                <YAxis 
-                                  axisLine={false}
-                                  tickLine={false}
-                                  className="text-xs fill-muted-foreground"
-                                />
-                                <Tooltip 
-                                  contentStyle={{
-                                    backgroundColor: 'hsl(var(--card))',
-                                    border: '1px solid hsl(var(--border))',
-                                    borderRadius: '8px',
-                                    fontSize: '12px',
-                                  }}
-                                  labelStyle={{ color: 'hsl(var(--foreground))' }}
-                                />
-                                <Line
-                                  type="monotone"
-                                  dataKey="temperature"
-                                  stroke="#F97316"
-                                  strokeWidth={3}
-                                  dot={{ fill: '#F97316', strokeWidth: 2, r: 4 }}
-                                  name="Temperature (°C)"
-                                />
-                                <Line
-                                  type="monotone"
-                                  dataKey="humidity"
-                                  stroke="#3B82F6"
-                                  strokeWidth={3}
-                                  dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                                  name="Humidity (%)"
-                                />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })()}
+                {chartData.length > 0 && (
+                  <motion.div
+                    ref={lineChartRef}
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={isLineChartVisible ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.7, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    className="mb-8"
+                  >
+                    <Card className="border-0 bg-card/50 backdrop-blur-sm">
+                      <CardHeader>
+                        <CardTitle className="text-lg font-semibold">Historical Data Trends</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                              <XAxis 
+                                dataKey="time" 
+                                axisLine={false}
+                                tickLine={false}
+                                className="text-xs fill-muted-foreground"
+                              />
+                              <YAxis 
+                                axisLine={false}
+                                tickLine={false}
+                                className="text-xs fill-muted-foreground"
+                              />
+                              <Tooltip 
+                                contentStyle={{
+                                  backgroundColor: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  fontSize: '12px',
+                                }}
+                                labelStyle={{ color: 'hsl(var(--foreground))' }}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="temperature"
+                                stroke="#F97316"
+                                strokeWidth={3}
+                                dot={{ fill: '#F97316', strokeWidth: 2, r: 4 }}
+                                name="Temperature (°C)"
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="humidity"
+                                stroke="#3B82F6"
+                                strokeWidth={3}
+                                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                                name="Humidity (%)"
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
 
                 {/* 1-Minute Monitoring Table */}
-                {(() => {
-                  const [ref, isVisible] = useScrollReveal();
-                  return (
-                    <motion.div
-                      ref={ref}
-                      initial={{ opacity: 0, y: 40 }}
-                      animate={isVisible ? { opacity: 1, y: 0 } : {}}
-                      transition={{ duration: 0.7, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                    >
-                      <Card className="border-0 bg-card/50 backdrop-blur-sm mb-8">
-                        <CardHeader>
-                          <CardTitle className="text-lg font-semibold flex items-center justify-between">
-                            Lab Environment Monitoring (10-Minute Intervals)
-                            {isSensorConnected && (
-                              <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
-                                Real-time Data
-                              </Badge>
-                            )}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-[100px]">Time</TableHead>
-                                <TableHead>Temperature (°C)</TableHead>
-                                <TableHead>Humidity (%)</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>AC Action</TableHead>
+                <motion.div
+                  ref={monitoringTableRef}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={isMonitoringTableVisible ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.7, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                >
+                  <Card className="border-0 bg-card/50 backdrop-blur-sm mb-8">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold flex items-center justify-between">
+                        Lab Environment Monitoring (10-Minute Intervals)
+                        {isSensorConnected && (
+                          <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                            Real-time Data
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[100px]">Time</TableHead>
+                            <TableHead>Temperature (°C)</TableHead>
+                            <TableHead>Humidity (%)</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>AC Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pagedMonitoringData.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                No data available
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            pagedMonitoringData.map((record) => (
+                              <TableRow key={record.id}>
+                                <TableCell className="font-mono">{record.time}</TableCell>
+                                <TableCell className="font-mono">{record.temperature}°C</TableCell>
+                                <TableCell className="font-mono">{record.humidity}%</TableCell>
+                                <TableCell>
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={`text-xs ${getStatusColor(record.status)}`}
+                                  >
+                                    {record.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">{record.acAction}</TableCell>
                               </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {pagedMonitoringData.length === 0 ? (
-                                <TableRow>
-                                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                    No data available
-                                  </TableCell>
-                                </TableRow>
-                              ) : (
-                                pagedMonitoringData.map((record) => (
-                                  <TableRow key={record.id}>
-                                    <TableCell className="font-mono">{record.time}</TableCell>
-                                    <TableCell className="font-mono">{record.temperature}°C</TableCell>
-                                    <TableCell className="font-mono">{record.humidity}%</TableCell>
-                                    <TableCell>
-                                      <Badge 
-                                        variant="secondary" 
-                                        className={`text-xs ${getStatusColor(record.status)}`}
-                                      >
-                                        {record.status}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">{record.acAction}</TableCell>
-                                  </TableRow>
-                                ))
-                              )}
-                            </TableBody>
-                          </Table>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })()}
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
                 {/* Footer */}
                 <Footer />
