@@ -8,7 +8,7 @@ import { Footer } from '@/components/footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid, Area, AreaChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
 import { Thermometer, Droplets, Wind, Gauge, TrendingUp, Activity } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -47,22 +47,6 @@ function useScrollReveal(threshold = 0.15) {
   return [ref, isVisible] as const;
 }
 
-// Temperature status colors
-const getTemperatureColor = (temp: number) => {
-  if (temp < 20) return '#3B82F6'; // Blue - Cold
-  if (temp < 25) return '#10B981'; // Green - Normal
-  if (temp < 30) return '#F59E0B'; // Yellow - Warm
-  return '#EF4444'; // Red - Hot
-};
-
-// Humidity status colors
-const getHumidityColor = (humidity: number) => {
-  if (humidity < 30) return '#EF4444'; // Red - Too dry
-  if (humidity < 60) return '#10B981'; // Green - Normal
-  if (humidity < 80) return '#F59E0B'; // Yellow - High
-  return '#3B82F6'; // Blue - Very high
-};
-
 function LabMonitoringContent() {
   const { sensorData, sensorHistory, isSensorConnected } = useSensor();
   const [chartData, setChartData] = useState<any[]>([]);
@@ -75,8 +59,8 @@ function LabMonitoringContent() {
   // Move all useScrollReveal calls to the top level
   const [pageTitleRef, isPageTitleVisible] = useScrollReveal();
   const [metricsCardsRef, isMetricsCardsVisible] = useScrollReveal();
-  const [donutChartsRef, isDonutChartsVisible] = useScrollReveal();
-  const [lineChartRef, isLineChartVisible] = useScrollReveal();
+  const [lineChartsRef, isLineChartsVisible] = useScrollReveal();
+  const [combinedChartRef, isCombinedChartVisible] = useScrollReveal();
   const [monitoringTableRef, isMonitoringTableVisible] = useScrollReveal();
 
   // Tabel utama hanya 10 data terbaru
@@ -156,52 +140,16 @@ function LabMonitoringContent() {
     }
   };
 
-  // Prepare donut chart data
-  const temperatureDonutData = [
-    {
-      name: 'Current',
-      value: metrics.currentTemp,
-      color: getTemperatureColor(metrics.currentTemp)
-    },
-    {
-      name: 'Remaining',
-      value: Math.max(0, 50 - metrics.currentTemp),
-      color: '#E5E7EB'
-    }
-  ];
+  // Prepare data for individual charts (last 10 readings)
+  const temperatureChartData = chartData.slice(-10).map(item => ({
+    time: item.time,
+    value: item.temperature
+  }));
 
-  const humidityDonutData = [
-    {
-      name: 'Current',
-      value: metrics.currentHumidity,
-      color: getHumidityColor(metrics.currentHumidity)
-    },
-    {
-      name: 'Remaining',
-      value: Math.max(0, 100 - metrics.currentHumidity),
-      color: '#E5E7EB'
-    }
-  ];
-
-  // Custom label for donut charts
-  const renderCustomLabel = (entry: any, value: number, unit: string) => {
-    return (
-      <text
-        x="50%"
-        y="50%"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="fill-current text-2xl font-bold"
-      >
-        <tspan x="50%" dy="-0.3em" className="text-3xl font-bold">
-          {value.toFixed(1)}
-        </tspan>
-        <tspan x="50%" dy="1.2em" className="text-lg">
-          {unit}
-        </tspan>
-      </text>
-    );
-  };
+  const humidityChartData = chartData.slice(-10).map(item => ({
+    time: item.time,
+    value: item.humidity
+  }));
 
   return (
     <div className="flex h-screen bg-background">
@@ -258,15 +206,15 @@ function LabMonitoringContent() {
                   />
                 </motion.div>
 
-                {/* Donut Charts Section */}
+                {/* Individual Line Charts Section */}
                 <motion.div
-                  ref={donutChartsRef}
+                  ref={lineChartsRef}
                   initial={{ opacity: 0, y: 40 }}
-                  animate={isDonutChartsVisible ? { opacity: 1, y: 0 } : {}}
+                  animate={isLineChartsVisible ? { opacity: 1, y: 0 } : {}}
                   transition={{ duration: 0.7, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
                 >
-                  {/* Temperature Donut Chart */}
+                  {/* Temperature Line Chart */}
                   <Card className="border-0 bg-card/50 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -275,39 +223,55 @@ function LabMonitoringContent() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-48 relative">
+                      <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={temperatureDonutData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              startAngle={90}
-                              endAngle={450}
+                          <AreaChart data={temperatureChartData}>
+                            <defs>
+                              <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#F97316" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#F97316" stopOpacity={0.1}/>
+                              </linearGradient>
+                            </defs>
+                            <XAxis 
+                              dataKey="time" 
+                              axisLine={false}
+                              tickLine={false}
+                              className="text-xs fill-muted-foreground"
+                              tick={{ fontSize: 10 }}
+                            />
+                            <YAxis 
+                              axisLine={false}
+                              tickLine={false}
+                              className="text-xs fill-muted-foreground"
+                              tick={{ fontSize: 10 }}
+                            />
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                              }}
+                              labelStyle={{ color: 'hsl(var(--foreground))' }}
+                            />
+                            <Area
+                              type="monotone"
                               dataKey="value"
-                              stroke="none"
-                            >
-                              {temperatureDonutData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                          </PieChart>
+                              stroke="#F97316"
+                              fill="url(#temperatureGradient)"
+                              strokeWidth={2}
+                              name="Temperature (°C)"
+                            />
+                          </AreaChart>
                         </ResponsiveContainer>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="text-3xl font-bold text-foreground">
-                              {metrics.currentTemp.toFixed(1)}
-                            </div>
-                            <div className="text-lg text-muted-foreground">°C</div>
-                          </div>
-                        </div>
                       </div>
                       <div className="mt-4 text-center">
+                        <div className="text-2xl font-bold text-foreground">
+                          {metrics.currentTemp.toFixed(1)}°C
+                        </div>
                         <Badge 
                           variant="secondary" 
-                          className={`text-xs ${
+                          className={`text-xs mt-2 ${
                             metrics.currentTemp > 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                             metrics.currentTemp > 25 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
                             'bg-green-500/10 text-green-500 border-green-500/20'
@@ -320,7 +284,7 @@ function LabMonitoringContent() {
                     </CardContent>
                   </Card>
 
-                  {/* Humidity Donut Chart */}
+                  {/* Humidity Line Chart */}
                   <Card className="border-0 bg-card/50 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -329,39 +293,55 @@ function LabMonitoringContent() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-48 relative">
+                      <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={humidityDonutData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              startAngle={90}
-                              endAngle={450}
+                          <AreaChart data={humidityChartData}>
+                            <defs>
+                              <linearGradient id="humidityGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                              </linearGradient>
+                            </defs>
+                            <XAxis 
+                              dataKey="time" 
+                              axisLine={false}
+                              tickLine={false}
+                              className="text-xs fill-muted-foreground"
+                              tick={{ fontSize: 10 }}
+                            />
+                            <YAxis 
+                              axisLine={false}
+                              tickLine={false}
+                              className="text-xs fill-muted-foreground"
+                              tick={{ fontSize: 10 }}
+                            />
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                              }}
+                              labelStyle={{ color: 'hsl(var(--foreground))' }}
+                            />
+                            <Area
+                              type="monotone"
                               dataKey="value"
-                              stroke="none"
-                            >
-                              {humidityDonutData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                          </PieChart>
+                              stroke="#3B82F6"
+                              fill="url(#humidityGradient)"
+                              strokeWidth={2}
+                              name="Humidity (%)"
+                            />
+                          </AreaChart>
                         </ResponsiveContainer>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="text-3xl font-bold text-foreground">
-                              {metrics.currentHumidity.toFixed(1)}
-                            </div>
-                            <div className="text-lg text-muted-foreground">%</div>
-                          </div>
-                        </div>
                       </div>
                       <div className="mt-4 text-center">
+                        <div className="text-2xl font-bold text-foreground">
+                          {metrics.currentHumidity.toFixed(1)}%
+                        </div>
                         <Badge 
                           variant="secondary" 
-                          className={`text-xs ${
+                          className={`text-xs mt-2 ${
                             metrics.currentHumidity > 80 ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
                             metrics.currentHumidity > 60 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
                             metrics.currentHumidity < 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
@@ -423,12 +403,12 @@ function LabMonitoringContent() {
                   </Card>
                 </motion.div>
 
-                {/* Line Chart for Historical Data */}
+                {/* Combined Line Chart for Historical Data */}
                 {chartData.length > 0 && (
                   <motion.div
-                    ref={lineChartRef}
+                    ref={combinedChartRef}
                     initial={{ opacity: 0, y: 40 }}
-                    animate={isLineChartVisible ? { opacity: 1, y: 0 } : {}}
+                    animate={isCombinedChartVisible ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.7, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
                     className="mb-8"
                   >
