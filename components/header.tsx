@@ -26,11 +26,11 @@ function DateText() {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     setMounted(true);
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
   if (!mounted) return <span className="text-base font-medium text-gray-700 dark:text-gray-200">&nbsp;</span>;
-  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   const day = now.toLocaleDateString('en-US', { weekday: 'long' });
   const date = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
   return (

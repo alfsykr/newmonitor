@@ -52,7 +52,7 @@ function DashboardGreetingAndDate() {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     setMounted(true);
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => setNow(new Date()), 60000); // update setiap menit
     return () => clearInterval(timer);
   }, []);
   if (!mounted) return (
@@ -68,7 +68,7 @@ function DashboardGreetingAndDate() {
   else if (hours < 18) greeting = "Good Afternoon!";
   else greeting = "Good Evening!";
   const day = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); // tanpa detik
   const date = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   return (
     <>
@@ -103,10 +103,9 @@ function DashboardTop() {
         <img
           src="/lab-bg.jpg"
           alt="Lab Background"
-          className="w-full h-full object-cover absolute inset-0 z-0"
+          className="w-full h-full object-cover absolute inset-0 z-0 blur"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800 via-blue-600 to-blue-400 opacity-80" />
-        <div className="absolute inset-0 bg-blue-900/40" />
+        {/* Overlay biru dihapus */}
       </div>
       {/* Main content dengan z-index lebih tinggi */}
       <div className="relative z-10 flex flex-row w-full max-w-4xl justify-between items-center mt-8 px-8">
