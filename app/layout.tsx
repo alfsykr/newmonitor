@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AIDA64Provider } from "@/lib/aida64-context";
-import { ModbusProvider } from "@/lib/modbus-context";
 import { FirebaseProvider } from "@/lib/firebase-context";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -27,11 +27,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AIDA64Provider>
-            <ModbusProvider>
-              <FirebaseProvider>
-                {children}
-              </FirebaseProvider>
-            </ModbusProvider>
+            <FirebaseProvider>
+              {children}
+            </FirebaseProvider>
           </AIDA64Provider>
         </ThemeProvider>
       </body>
