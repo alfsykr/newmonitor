@@ -4,42 +4,57 @@ import { Bell, Sun, Moon, Thermometer, Home } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 
-function GreetingText() {
-  const [now, setNow] = useState(new Date());
+const GreetingText = memo(function GreetingText() {
+  const [greeting, setGreeting] = useState("");
+  
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000 * 30);
+    const updateGreeting = () => {
+      const hours = new Date().getHours();
+      if (hours < 5) setGreeting("Good Night!");
+      else if (hours < 12) setGreeting("Good Morning!");
+      else if (hours < 18) setGreeting("Good Afternoon!");
+      else setGreeting("Good Evening!");
+    };
+    
+    updateGreeting();
+    const timer = setInterval(updateGreeting, 30000); // Update every 30 seconds
     return () => clearInterval(timer);
   }, []);
-  const hours = now.getHours();
-  let greeting = "";
-  if (hours < 5) greeting = "Good Night!";
-  else if (hours < 12) greeting = "Good Morning!";
-  else if (hours < 18) greeting = "Good Afternoon!";
-  else greeting = "Good Evening!";
+  
   return <span className="text-lg font-semibold text-gray-800 dark:text-white drop-shadow-lg">{greeting}</span>;
-}
+});
 
-function DateText() {
+const DateText = memo(function DateText() {
   const [mounted, setMounted] = useState(false);
-  const [now, setNow] = useState(new Date());
+  const [dateTime, setDateTime] = useState({ time: "", day: "", date: "" });
+  
   useEffect(() => {
     setMounted(true);
-    const timer = setInterval(() => setNow(new Date()), 60000);
+    const updateDateTime = () => {
+      const now = new Date();
+      setDateTime({
+        time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        day: now.toLocaleDateString('en-US', { weekday: 'long' }),
+        date: now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+      });
+    };
+    
+    updateDateTime();
+    const timer = setInterval(updateDateTime, 60000); // Update every minute
     return () => clearInterval(timer);
   }, []);
+  
   if (!mounted) return <span className="text-base font-medium text-gray-700 dark:text-gray-200">&nbsp;</span>;
-  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const day = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const date = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  
   return (
     <span className="text-base font-medium text-gray-700 dark:text-gray-200 flex items-center gap-4">
-      {time}
-      <span>{day}, {date}</span>
+      {dateTime.time}
+      <span>{dateTime.day}, {dateTime.date}</span>
     </span>
   );
-}
+});
 
 export function Header() {
   const { theme, setTheme } = useTheme();

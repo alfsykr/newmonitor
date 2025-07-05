@@ -20,30 +20,21 @@ interface Metrics {
   dataSource: string;
 }
 
-interface ChartDataPoint {
-  time: string;
-  cpu: number;
-  room: number;
-}
-
 interface AIDA64ContextType {
   cpuData: CPUData[];
   metrics: Metrics;
-  chartData: ChartDataPoint[];
   isConnected: boolean;
   autoRefresh: boolean;
   lastUpdate: Date;
   uploadedCsvContent: string | null;
   setCpuData: (data: CPUData[]) => void;
   setMetrics: (metrics: Metrics) => void;
-  setChartData: (data: ChartDataPoint[]) => void;
   setIsConnected: (connected: boolean) => void;
   setAutoRefresh: (refresh: boolean) => void;
   setLastUpdate: (date: Date) => void;
   setUploadedCsvContent: (content: string | null) => void;
   processAidaData: (csvContent: string) => void;
   simulateDataVariation: (csvContent: string) => void;
-  generateChartData: (cpuData: CPUData[]) => void;
 }
 
 const AIDA64Context = createContext<AIDA64ContextType | undefined>(undefined);
@@ -71,40 +62,6 @@ const generateIndividualCPUData = (): CPUData[] => {
   });
 };
 
-// Generate 24-hour chart data
-const generateTemperatureChartData = (cpuData: CPUData[]): ChartDataPoint[] => {
-  const data = [];
-  const now = new Date();
-  
-  for (let i = 23; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 60 * 60 * 1000);
-    const hour = time.getHours().toString().padStart(2, '0') + ':00';
-    
-    // Use actual CPU data if available, otherwise generate mock data
-    let cpuTemp = 65;
-    if (cpuData.length > 0) {
-      // Use average of all CPU temperatures
-      const cpuTemps = cpuData.filter(cpu => !cpu.name.includes('HDD')).map(cpu => cpu.temperature);
-      cpuTemp = cpuTemps.reduce((sum, temp) => sum + temp, 0) / cpuTemps.length;
-    }
-    
-    // Add some variation for historical data
-    const variation = Math.sin((i / 24) * 2 * Math.PI) * 5 + Math.random() * 4 - 2;
-    const finalCpuTemp = Math.max(45, Math.min(85, cpuTemp + variation));
-    
-    // Generate room temperature data (20-30°C)
-    const roomTemp = 24 + Math.sin((i / 24) * 2 * Math.PI) * 3 + Math.random() * 2 - 1;
-    
-    data.push({
-      time: hour,
-      cpu: Math.round(finalCpuTemp * 10) / 10,
-      room: Math.round(roomTemp * 10) / 10,
-    });
-  }
-  
-  return data;
-};
-
 export function AIDA64Provider({ children }: { children: ReactNode }) {
   const [cpuData, setCpuData] = useState<CPUData[]>([]);
   const [metrics, setMetrics] = useState<Metrics>({
@@ -113,7 +70,6 @@ export function AIDA64Provider({ children }: { children: ReactNode }) {
     maxTemp: 0,
     dataSource: 'Mock Data'
   });
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -145,8 +101,6 @@ export function AIDA64Provider({ children }: { children: ReactNode }) {
         maxTemp: Math.round(maxTemp * 10) / 10,
         dataSource: 'Mock Data'
       });
-      
-      setChartData(generateTemperatureChartData(initialData));
     }
   }, []);
 
@@ -251,9 +205,6 @@ export function AIDA64Provider({ children }: { children: ReactNode }) {
       });
       setIsConnected(true);
       setLastUpdate(new Date());
-      
-      // Generate chart data based on CPU data
-      generateChartData(processedCpuData);
 
     } catch (error) {
       console.error('Error processing data:', error);
@@ -272,8 +223,6 @@ export function AIDA64Provider({ children }: { children: ReactNode }) {
         maxTemp: Math.round(maxTemp * 10) / 10,
         dataSource: 'Mock Data'
       });
-      
-      setChartData(generateTemperatureChartData(mockData));
     }
   };
 
@@ -335,19 +284,10 @@ export function AIDA64Provider({ children }: { children: ReactNode }) {
         dataSource: 'AIDA64 CSV (Live)'
       });
       setLastUpdate(new Date());
-      
-      // Update chart data
-      generateChartData(sensorData);
 
     } catch (error) {
       console.error('Error simulating data variation:', error);
     }
-  };
-
-  // Generate chart data based on CPU data
-  const generateChartData = (cpuData: CPUData[]) => {
-    const newChartData = generateTemperatureChartData(cpuData);
-    setChartData(newChartData);
   };
 
   // Auto-refresh effect
@@ -364,21 +304,18 @@ export function AIDA64Provider({ children }: { children: ReactNode }) {
   const value: AIDA64ContextType = {
     cpuData,
     metrics,
-    chartData,
     isConnected,
     autoRefresh,
     lastUpdate,
     uploadedCsvContent,
     setCpuData,
     setMetrics,
-    setChartData,
     setIsConnected,
     setAutoRefresh,
     setLastUpdate,
     setUploadedCsvContent,
     processAidaData,
     simulateDataVariation,
-    generateChartData,
   };
 
   return (

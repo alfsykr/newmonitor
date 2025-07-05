@@ -8,12 +8,10 @@ import { Footer } from '@/components/footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
-import { Thermometer, Droplets, Wind, Gauge, TrendingUp, Activity } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
+import { Thermometer, Droplets } from 'lucide-react';
 import { useSensor, SensorProvider } from '@/lib/firebase-sensor-context';
-import { PcLab1Provider, usePcLab1 } from '@/lib/pc-lab1-context';
+import { PcLab1Provider } from '@/lib/pc-lab1-context';
 
 function isTenMinuteMark(timeStr: string) {
   if (!timeStr) return false;
@@ -23,57 +21,12 @@ function isTenMinuteMark(timeStr: string) {
   return [0, 10, 20, 30, 40, 50].includes(minute);
 }
 
-// Custom hook for scroll reveal
-function useScrollReveal(threshold = 0.15) {
-  const ref = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const observer = new window.IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [threshold]);
-
-  return [ref, isVisible] as const;
-}
-
 function LabMonitoringContent() {
   const { sensorData, sensorHistory, isSensorConnected } = useSensor();
   const [chartData, setChartData] = useState<any[]>([]);
   const [monitoringData, setMonitoringData] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState({
-    currentTemp: 0,
-    currentHumidity: 0
-  });
 
-  // Move all useScrollReveal calls to the top level
-  const [pageTitleRef, isPageTitleVisible] = useScrollReveal();
-  const [metricsCardsRef, isMetricsCardsVisible] = useScrollReveal();
-  const [lineChartsRef, isLineChartsVisible] = useScrollReveal();
-  const [combinedChartRef, isCombinedChartVisible] = useScrollReveal();
-  const [monitoringTableRef, isMonitoringTableVisible] = useScrollReveal();
-
-  // Tabel utama hanya 10 data terbaru
-  const pagedMonitoringData = monitoringData.slice(0, 10);
-
-  // Add PcLab1 context
-  const { avgSuhu: avgCpuLab1, isConnected: isPcLab1Connected } = usePcLab1();
-  
-  // Calculate average temperature and humidity from monitoringData
-  const avgTemp = monitoringData.length > 0 ? (monitoringData.reduce((sum, d) => sum + d.temperature, 0) / monitoringData.length).toFixed(1) : '-';
-  const avgHumidity = monitoringData.length > 0 ? (monitoringData.reduce((sum, d) => sum + d.humidity, 0) / monitoringData.length).toFixed(1) : '-';
-
-  // Chart/table generator dari sensorHistory
+  // Generate chart data from sensor history
   const generateSensorChartData = () => {
     if (sensorHistory && sensorHistory.length > 0) {
       return sensorHistory.filter(item =>
@@ -95,6 +48,7 @@ function LabMonitoringContent() {
     return [];
   };
 
+  // Generate monitoring table data
   const generateSensorMonitoringTable = () => {
     if (sensorHistory && sensorHistory.length > 0) {
       return sensorHistory.filter(item =>
@@ -114,18 +68,14 @@ function LabMonitoringContent() {
         humidity: item.humidity,
         acAction: item.temperature > 25 ? 'AC ON - Cooling' : 'AC OFF - Standby',
         status: item.temperature > 26 ? 'Warning' : item.temperature > 25 ? 'Caution' : 'Normal',
-      })).reverse();
+      })).reverse().slice(0, 10); // Only show last 10 records
     }
     return [];
   };
 
-  // Update metrics, chart, dan table setiap data sensor berubah
+  // Update data when sensor data changes
   useEffect(() => {
     if (isSensorConnected && sensorData) {
-      setMetrics({
-        currentTemp: sensorData.temperature,
-        currentHumidity: sensorData.humidity
-      });
       setChartData(generateSensorChartData());
       setMonitoringData(generateSensorMonitoringTable());
     }
@@ -157,329 +107,231 @@ function LabMonitoringContent() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="lab-monitoring-page"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -24 }}
-              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <div className="p-6">
-                {/* Page Title */}
-                <motion.div
-                  ref={pageTitleRef}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={isPageTitleVisible ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
-                  className="mb-8"
-                >
-                  <h1 className="text-3xl font-bold tracking-tight">Temperature Monitoring</h1>
-                  <p className="text-muted-foreground mt-2">
-                    Real-time monitoring of laboratory environment using ESP32 (Firebase)
-                  </p>
-                </motion.div>
+          <div className="p-6">
+            {/* Page Title */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold tracking-tight">Temperature Monitoring</h1>
+              <p className="text-muted-foreground mt-2">
+                Real-time monitoring of laboratory environment using ESP32 (Firebase)
+              </p>
+            </div>
 
-                {/* Metrics Cards */}
-                <motion.div
-                  ref={metricsCardsRef}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={isMetricsCardsVisible ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.7, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8"
-                >
-                  <MetricCard
-                    title="Current Temperature"
-                    value={`${metrics.currentTemp}°C`}
-                    status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
-                    statusColor={isSensorConnected ? 'green' : 'orange'}
-                    icon={Thermometer}
-                    iconColor="orange"
-                  />
-                  <MetricCard
-                    title="Current Humidity"
-                    value={`${metrics.currentHumidity}%`}
-                    status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
-                    statusColor={isSensorConnected ? 'green' : 'blue'}
-                    icon={Droplets}
-                    iconColor="blue"
-                  />
-                </motion.div>
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <MetricCard
+                title="Current Temperature"
+                value={`${sensorData?.temperature || 0}°C`}
+                status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
+                statusColor={isSensorConnected ? 'green' : 'orange'}
+                icon={Thermometer}
+                iconColor="orange"
+              />
+              <MetricCard
+                title="Current Humidity"
+                value={`${sensorData?.humidity || 0}%`}
+                status={isSensorConnected ? 'Connected to Firebase' : 'Disconnected'}
+                statusColor={isSensorConnected ? 'green' : 'blue'}
+                icon={Droplets}
+                iconColor="blue"
+              />
+            </div>
 
-                {/* Individual Line Charts Section - Enlarged */}
-                <motion.div
-                  ref={lineChartsRef}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={isLineChartsVisible ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.7, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
-                >
-                  {/* Temperature Line Chart - Enlarged */}
-                  <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                        <Thermometer className="w-6 h-6 text-orange-500" />
-                        Temperature
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={temperatureChartData}>
-                            <defs>
-                              <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#F97316" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#F97316" stopOpacity={0.1}/>
-                              </linearGradient>
-                            </defs>
-                            <XAxis 
-                              dataKey="time" 
-                              axisLine={false}
-                              tickLine={false}
-                              className="text-sm fill-muted-foreground"
-                            />
-                            <YAxis 
-                              axisLine={false}
-                              tickLine={false}
-                              className="text-sm fill-muted-foreground"
-                            />
-                            <Tooltip 
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                              }}
-                              labelStyle={{ color: 'hsl(var(--foreground))' }}
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="value"
-                              stroke="#F97316"
-                              fill="url(#temperatureGradient)"
-                              strokeWidth={3}
-                              name="Temperature (°C)"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="mt-6 text-center">
-                        <div className="text-3xl font-bold text-foreground">
-                          {metrics.currentTemp.toFixed(1)}°C
-                        </div>
-                        <Badge 
-                          variant="secondary" 
-                          className={`text-sm mt-3 px-4 py-1 ${
-                            metrics.currentTemp > 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                            metrics.currentTemp > 25 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                            'bg-green-500/10 text-green-500 border-green-500/20'
-                          }`}
-                        >
-                          {metrics.currentTemp > 30 ? 'Hot' : 
-                           metrics.currentTemp > 25 ? 'Warm' : 'Normal'}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
+            {/* Individual Charts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {/* Temperature Chart */}
+              <Card className="border-0 bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                    <Thermometer className="w-6 h-6 text-orange-500" />
+                    Temperature
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={temperatureChartData}>
+                        <defs>
+                          <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#F97316" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#F97316" stopOpacity={0.1}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis 
+                          dataKey="time" 
+                          axisLine={false}
+                          tickLine={false}
+                          className="text-sm fill-muted-foreground"
+                        />
+                        <YAxis 
+                          axisLine={false}
+                          tickLine={false}
+                          className="text-sm fill-muted-foreground"
+                        />
+                        <Tooltip 
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                          }}
+                          labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#F97316"
+                          fill="url(#temperatureGradient)"
+                          strokeWidth={3}
+                          name="Temperature (°C)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-6 text-center">
+                    <div className="text-3xl font-bold text-foreground">
+                      {sensorData?.temperature?.toFixed(1) || '0.0'}°C
+                    </div>
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-sm mt-3 px-4 py-1 ${
+                        (sensorData?.temperature || 0) > 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                        (sensorData?.temperature || 0) > 25 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                        'bg-green-500/10 text-green-500 border-green-500/20'
+                      }`}
+                    >
+                      {(sensorData?.temperature || 0) > 30 ? 'Hot' : 
+                       (sensorData?.temperature || 0) > 25 ? 'Warm' : 'Normal'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
 
-                  {/* Humidity Line Chart - Enlarged */}
-                  <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                        <Droplets className="w-6 h-6 text-blue-500" />
-                        Humidity
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={humidityChartData}>
-                            <defs>
-                              <linearGradient id="humidityGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
-                              </linearGradient>
-                            </defs>
-                            <XAxis 
-                              dataKey="time" 
-                              axisLine={false}
-                              tickLine={false}
-                              className="text-sm fill-muted-foreground"
-                            />
-                            <YAxis 
-                              axisLine={false}
-                              tickLine={false}
-                              className="text-sm fill-muted-foreground"
-                            />
-                            <Tooltip 
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                              }}
-                              labelStyle={{ color: 'hsl(var(--foreground))' }}
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="value"
-                              stroke="#3B82F6"
-                              fill="url(#humidityGradient)"
-                              strokeWidth={3}
-                              name="Humidity (%)"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="mt-6 text-center">
-                        <div className="text-3xl font-bold text-foreground">
-                          {metrics.currentHumidity.toFixed(1)}%
-                        </div>
-                        <Badge 
-                          variant="secondary" 
-                          className={`text-sm mt-3 px-4 py-1 ${
-                            metrics.currentHumidity > 80 ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                            metrics.currentHumidity > 60 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                            metrics.currentHumidity < 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                            'bg-green-500/10 text-green-500 border-green-500/20'
-                          }`}
-                        >
-                          {metrics.currentHumidity > 80 ? 'Very High' : 
-                           metrics.currentHumidity > 60 ? 'High' : 
-                           metrics.currentHumidity < 30 ? 'Low' : 'Normal'}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+              {/* Humidity Chart */}
+              <Card className="border-0 bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                    <Droplets className="w-6 h-6 text-blue-500" />
+                    Humidity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={humidityChartData}>
+                        <defs>
+                          <linearGradient id="humidityGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis 
+                          dataKey="time" 
+                          axisLine={false}
+                          tickLine={false}
+                          className="text-sm fill-muted-foreground"
+                        />
+                        <YAxis 
+                          axisLine={false}
+                          tickLine={false}
+                          className="text-sm fill-muted-foreground"
+                        />
+                        <Tooltip 
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                          }}
+                          labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#3B82F6"
+                          fill="url(#humidityGradient)"
+                          strokeWidth={3}
+                          name="Humidity (%)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-6 text-center">
+                    <div className="text-3xl font-bold text-foreground">
+                      {sensorData?.humidity?.toFixed(1) || '0.0'}%
+                    </div>
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-sm mt-3 px-4 py-1 ${
+                        (sensorData?.humidity || 0) > 80 ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                        (sensorData?.humidity || 0) > 60 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                        (sensorData?.humidity || 0) < 30 ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                        'bg-green-500/10 text-green-500 border-green-500/20'
+                      }`}
+                    >
+                      {(sensorData?.humidity || 0) > 80 ? 'Very High' : 
+                       (sensorData?.humidity || 0) > 60 ? 'High' : 
+                       (sensorData?.humidity || 0) < 30 ? 'Low' : 'Normal'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-                {/* Combined Line Chart for Historical Data */}
-                {chartData.length > 0 && (
-                  <motion.div
-                    ref={combinedChartRef}
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={isCombinedChartVisible ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.7, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                    className="mb-8"
-                  >
-                    <Card className="border-0 bg-card/50 backdrop-blur-sm">
-                      <CardHeader>
-                        <CardTitle className="text-lg font-semibold">Historical Data Trends</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-80">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                              <XAxis 
-                                dataKey="time" 
-                                axisLine={false}
-                                tickLine={false}
-                                className="text-xs fill-muted-foreground"
-                              />
-                              <YAxis 
-                                axisLine={false}
-                                tickLine={false}
-                                className="text-xs fill-muted-foreground"
-                              />
-                              <Tooltip 
-                                contentStyle={{
-                                  backgroundColor: 'hsl(var(--card))',
-                                  border: '1px solid hsl(var(--border))',
-                                  borderRadius: '8px',
-                                  fontSize: '12px',
-                                }}
-                                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="temperature"
-                                stroke="#F97316"
-                                strokeWidth={3}
-                                dot={{ fill: '#F97316', strokeWidth: 2, r: 4 }}
-                                name="Temperature (°C)"
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="humidity"
-                                stroke="#3B82F6"
-                                strokeWidth={3}
-                                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                                name="Humidity (%)"
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                )}
+            {/* Monitoring Table */}
+            <Card className="border-0 bg-card/50 backdrop-blur-sm mb-8">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold flex items-center justify-between">
+                  Lab Environment Monitoring (10-Minute Intervals)
+                  {isSensorConnected && (
+                    <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                      Real-time Data
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">Time</TableHead>
+                      <TableHead>Temperature (°C)</TableHead>
+                      <TableHead>Humidity (%)</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>AC Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {monitoringData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No data available
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      monitoringData.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-mono">{record.time}</TableCell>
+                          <TableCell className="font-mono">{record.temperature}°C</TableCell>
+                          <TableCell className="font-mono">{record.humidity}%</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-xs ${getStatusColor(record.status)}`}
+                            >
+                              {record.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{record.acAction}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
-                {/* 1-Minute Monitoring Table */}
-                <motion.div
-                  ref={monitoringTableRef}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={isMonitoringTableVisible ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.7, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                >
-                  <Card className="border-0 bg-card/50 backdrop-blur-sm mb-8">
-                    <CardHeader>
-                      <CardTitle className="text-lg font-semibold flex items-center justify-between">
-                        Lab Environment Monitoring (10-Minute Intervals)
-                        {isSensorConnected && (
-                          <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
-                            Real-time Data
-                          </Badge>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[100px]">Time</TableHead>
-                            <TableHead>Temperature (°C)</TableHead>
-                            <TableHead>Humidity (%)</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>AC Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pagedMonitoringData.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                No data available
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            pagedMonitoringData.map((record) => (
-                              <TableRow key={record.id}>
-                                <TableCell className="font-mono">{record.time}</TableCell>
-                                <TableCell className="font-mono">{record.temperature}°C</TableCell>
-                                <TableCell className="font-mono">{record.humidity}%</TableCell>
-                                <TableCell>
-                                  <Badge 
-                                    variant="secondary" 
-                                    className={`text-xs ${getStatusColor(record.status)}`}
-                                  >
-                                    {record.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">{record.acAction}</TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* Footer */}
-                <Footer />
-              </div>
-            </motion.div>
-          </AnimatePresence>
+            <Footer />
+          </div>
         </main>
       </div>
     </div>

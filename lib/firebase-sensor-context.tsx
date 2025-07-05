@@ -11,7 +11,7 @@ interface SensorData {
 
 interface SensorContextType {
   sensorData: SensorData | null;
-  sensorHistory: SensorData[]; // last 100 only
+  sensorHistory: SensorData[];
   isSensorConnected: boolean;
 }
 
@@ -19,7 +19,7 @@ const SensorContext = createContext<SensorContextType | undefined>(undefined);
 
 export function SensorProvider({ children }: { children: ReactNode }) {
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
-  const [sensorHistory, setSensorHistory] = useState<SensorData[]>([]); // last 100 only
+  const [sensorHistory, setSensorHistory] = useState<SensorData[]>([]);
   const [isSensorConnected, setIsSensorConnected] = useState(false);
 
   useEffect(() => {
@@ -30,8 +30,12 @@ export function SensorProvider({ children }: { children: ReactNode }) {
         if (snapshot.exists()) {
           const dataObj = snapshot.val();
           const dataArr = Object.values(dataObj) as SensorData[];
-          setSensorHistory(dataArr); // seluruh data
-          const latest = dataArr[dataArr.length - 1];
+          
+          // Limit to last 50 records for better performance
+          const limitedData = dataArr.slice(-50);
+          setSensorHistory(limitedData);
+          
+          const latest = limitedData[limitedData.length - 1];
           setSensorData(latest);
           setIsSensorConnected(true);
         } else {
@@ -41,6 +45,7 @@ export function SensorProvider({ children }: { children: ReactNode }) {
         }
       },
       (error) => {
+        console.error("Firebase sensor error:", error);
         setIsSensorConnected(false);
       }
     );
@@ -60,4 +65,4 @@ export function useSensor() {
     throw new Error("useSensor must be used within a SensorProvider");
   }
   return context;
-} 
+}

@@ -2,6 +2,7 @@ import { DivideIcon as LucideIcon } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
+import { memo } from 'react';
 
 interface MetricCardProps {
   title: string;
@@ -26,7 +27,7 @@ const iconColorMap = {
   red: 'text-red-500',
 };
 
-export function MetricCard({
+export const MetricCard = memo(function MetricCard({
   title,
   value,
   status,
@@ -34,12 +35,12 @@ export function MetricCard({
   icon: Icon,
   iconColor,
 }: MetricCardProps) {
-  // Dynamic progress based on value type
+  // Simplified progress calculation
   let percent = 60; // Default
   
   if (typeof value === 'string' && value.includes('°C')) {
     const temp = parseFloat(value.replace('°C', ''));
-    percent = Math.min(100, Math.max(0, (temp / 50) * 100)); // Scale to 50°C max
+    percent = Math.min(100, Math.max(0, (temp / 50) * 100));
   } else if (typeof value === 'string' && value.includes('%')) {
     percent = parseFloat(value.replace('%', ''));
   }
@@ -96,4 +97,4 @@ export function MetricCard({
       </CardContent>
     </Card>
   );
-}
+});
