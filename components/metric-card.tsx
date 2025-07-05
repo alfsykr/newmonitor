@@ -40,9 +40,14 @@ export const MetricCard = memo(function MetricCard({
   
   if (typeof value === 'string' && value.includes('°C')) {
     const temp = parseFloat(value.replace('°C', ''));
-    percent = Math.min(100, Math.max(0, (temp / 50) * 100));
+    if (!isNaN(temp)) {
+      percent = Math.min(100, Math.max(0, (temp / 50) * 100));
+    }
   } else if (typeof value === 'string' && value.includes('%')) {
-    percent = parseFloat(value.replace('%', ''));
+    const humidity = parseFloat(value.replace('%', ''));
+    if (!isNaN(humidity)) {
+      percent = humidity;
+    }
   }
   
   const ringColorMap = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { MetricCard } from '@/components/metric-card';
@@ -76,18 +76,18 @@ function DashboardMetrics() {
   // Memoize calculations to prevent unnecessary re-renders
   const calculatedMetrics = useMemo(() => {
     const avgTemp = sensorHistory?.length > 0 
-      ? (sensorHistory.reduce((sum, d) => sum + d.temperature, 0) / sensorHistory.length).toFixed(1)
-      : '-';
+      ? (sensorHistory.reduce((sum, d) => sum + (d.temperature || 0), 0) / sensorHistory.length).toFixed(1)
+      : '0';
     
     const avgHumidity = sensorHistory?.length > 0 
-      ? (sensorHistory.reduce((sum, d) => sum + d.humidity, 0) / sensorHistory.length).toFixed(1)
-      : '-';
+      ? (sensorHistory.reduce((sum, d) => sum + (d.humidity || 0), 0) / sensorHistory.length).toFixed(1)
+      : '0';
 
     return {
       avgTemp,
       avgHumidity,
-      avgCpuLab1: isPcLab1Connected ? avgCpuLab1 : '-',
-      maxCpuTemp: metrics?.maxTemp ? metrics.maxTemp.toFixed(1) : '-'
+      avgCpuLab1: isPcLab1Connected ? avgCpuLab1.toString() : '0',
+      maxCpuTemp: metrics?.maxTemp ? metrics.maxTemp.toFixed(1) : '0'
     };
   }, [sensorHistory, isPcLab1Connected, avgCpuLab1, metrics]);
 

@@ -296,7 +296,7 @@ export function AIDA64Provider({ children }: { children: ReactNode }) {
 
     const interval = setInterval(() => {
       simulateDataVariation(uploadedCsvContent);
-    }, 5000);
+    }, 30000); // Update every 30 seconds instead of 5
 
     return () => clearInterval(interval);
   }, [autoRefresh, uploadedCsvContent]);
